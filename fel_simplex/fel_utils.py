@@ -1,10 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jan 10 16:11:04 2025
-
-@author: felipe
-"""
+# Copyright (c) 2025 Felipe Matheus Oliveira Silva
+# This code is licensed under the MIT License.
+# See the LICENSE file in the project root for more information.
 
 import mpmath as mp
 

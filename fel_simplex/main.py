@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jan 12 17:12:37 2025
+# Copyright (c) 2025 Felipe Matheus Oliveira Silva
+# This code is licensed under the MIT License.
+# See the LICENSE file in the project root for more information.
 
-@author: felipe
-"""
 import mpmath as mp
 import fel_utils as futls
 import revised_simplex as Simplex
@@ -34,6 +31,6 @@ solver = Simplex.RevisedSimplex(A, b, c)
 solution, objective_value, status = solver.solve()
 
 print(f"Status: {status}")
-print(f"Solution: {solution}")
+print(f"Solution: \n{solution}")
 print(f"Objective value: {objective_value}")
 

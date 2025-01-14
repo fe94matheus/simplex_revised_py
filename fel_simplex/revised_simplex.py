@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Felipe Matheus Oliveira Silva
+# This code is licensed under the MIT License.
+# See the LICENSE file in the project root for more information.
+
 import mpmath as mp
 
 
@@ -58,7 +62,7 @@ class RevisedSimplex:
             for j, basis_col in enumerate(self.basis):
                 B[i, j] = self.augmented_matrix[i, basis_col]
         
-        return B**1
+        return B**-1
         
     def compute_reduced_costs(self, B_inv):
         """Compute reduced costs for non-basic variables"""
@@ -96,11 +100,15 @@ class RevisedSimplex:
         a_j = self.augmented_matrix[:, entering_var]
        
         d = B_inv * a_j
+        print("d: " )
+        print(d)
         
         '''if all(d <= 0):
             return None, None  # Unbounded solution'''
         
         b_bar = B_inv * self.b
+        print("b_bar: " )
+        print(b_bar)
         
         ratios = []
         
@@ -108,13 +116,13 @@ class RevisedSimplex:
         
         for i in range(self.len_basis):
             if d[i, 0] > 0:
-                ratio =  d[i, 0] / b_bar[i, 0] 
+                ratio =   b_bar[i, 0] / d[i, 0]
                 ratios.append((self.basis[i], ratio))
                 
         if not ratios:
             return None, None
                   
-        leaving_var, max_ratio = max(ratios, key=lambda x: x[1])
+        leaving_var, max_ratio = min(ratios, key=lambda x: x[1])
             
         return leaving_var, max_ratio
         
@@ -129,7 +137,7 @@ class RevisedSimplex:
     def get_solution(self, B_inv):
         """Get current solution values"""
         b_star = B_inv * self.b
-        x = mp.matrix(len(self.c), 1)
+        x = mp.matrix(len(self.new_c), 1)
         for i, b in enumerate(self.basis):
             x[b] = b_star[i]
         return x
@@ -148,24 +156,34 @@ class RevisedSimplex:
         while iteration < max_iterations:
             # Get basis inverse
             B_inv = self.get_basis_inverse()
+            print("B inverse: \n")
+            print(B_inv)
             
             # Compute reduced costs
             reduced_costs = self.compute_reduced_costs(B_inv)
+            print("\n reduced_costs: \n")
+            print(reduced_costs)
             
             # Get entering variable
             entering_var, min_reduced_cost = self.get_entering_variable(reduced_costs)
             
+            print("\n entering_var: ", entering_var)
+            print("\n min_reduced_cost: ", min_reduced_cost)
             # Check optimality
              
             tolerance = mp.mpf(f'1e-{int(mp.mp.dps * 0.5)}')  
             
             if min_reduced_cost >= -tolerance:
                 x = self.get_solution(B_inv)
-                return x, self.new_c * x, "Optimal"
+                print("\new_c: ")
+                print(self.new_c)
+                print("\nsolution: ")
+                print(x)
+                return x, self.new_c.T * x, "Optimal"
             
             # Get leaving variable
             leaving_var, max_ratio = self.get_leaving_variable(B_inv, entering_var)
-            
+            print("\n leaving_var: ", leaving_var)
             # Check if unbounded
             if leaving_var is None:
                 return None, None, "Unbounded"
