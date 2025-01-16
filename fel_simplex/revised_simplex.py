@@ -15,21 +15,25 @@ class RevisedSimplex:
         b : array-like - Right-hand side constraints
         c : array-like - Objective function coefficients
         """
-        self.A = A
+        self.original_A = A
         self.b = b
-        self.c = c
+        self.original_c = c
         
-        self.m = self.A.rows
-        self.n = self.A.cols
+        self.m = self.original_A.rows
+        self.n = self.original_A.cols
         
         mp.mp.dps = int(precision);
+        
+        self.A, self.c = self.transform_unrestricted()
                 
         # Add slack variables
         self.augmented_matrix, self.new_c = self.add_slack_variables()
         print(self.augmented_matrix)
+        print(self.new_c)
+        
         # Initialize basis
-        self.basis = list(range(self.n, self.n + self.m))
-        self.nonbasis = list(range(self.n))
+        self.basis = list(range(self.A.cols, self.A.cols + self.A.rows))
+        self.nonbasis = list(range(self.A.cols))
         
         self.len_basis = len(self.basis)
         self.len_nonbasis= len(self.nonbasis)
@@ -38,16 +42,29 @@ class RevisedSimplex:
         print('Non Basics: ', self.nonbasis)
         
        
+    def transform_unrestricted(self):
+        """Transform the variables x_i in x_i = x_i^+ - x_i^-"""
+        new_A = mp.matrix(self.m, 2 * self.n)
+        new_c = mp.matrix(2 * self.n, 1)
+        
+        for j in range(self.n):
+            new_A[ : , j ] = self.original_A[ : , j ]
+            new_c[ j , 0 ] = self.original_c[ j , 0 ]
+            
+            new_A[ : , j + self.n ] = -self.original_A[ : , j ]
+            new_c[ j + self.n , 0 ] = -self.original_c[ j , 0 ]
+            
+        return new_A, new_c
         
     def add_slack_variables(self):
         """Add slack variables to create initial basic feasible solution"""
         identity = mp.eye(self.m)
         augmented_matrix = mp.matrix(self.A.rows, self.A.cols + identity.cols)  
         
-        augmented_matrix[:, :self.n] = self.A  
-        augmented_matrix[:, self.n:] = identity 
+        augmented_matrix[:, :self.A.cols ] = self.A  
+        augmented_matrix[:, self.A.cols :] = identity 
         
-        new_c = mp.matrix(self.m + self.n, 1)
+        new_c = mp.matrix(self.A.rows + self.A.cols, 1)
         
         new_c[:self.A.cols, 0] = self.c
 
@@ -68,15 +85,18 @@ class RevisedSimplex:
         """Compute reduced costs for non-basic variables"""
         c_B = mp.matrix(self.len_basis, 1)
         
-        y_T = c_B.T * B_inv
-        
+       
         for j, basis_col in enumerate(self.basis):
             c_B[j, 0] = self.new_c[basis_col, 0]
+        
+        y_T = c_B.T * B_inv
+        
+       
         
         reduced_costs = []
         
         for j, n_basis_col  in enumerate(self.nonbasis):
-            r_cost = self.new_c[n_basis_col, 0] - (y_T[j] * self.augmented_matrix[j , n_basis_col])
+            r_cost = (self.new_c[n_basis_col, 0] - (y_T * self.augmented_matrix[ : , n_basis_col]))[0]
             reduced_costs.append((n_basis_col, r_cost))
         
             
@@ -112,8 +132,6 @@ class RevisedSimplex:
         
         ratios = []
         
-     
-        
         for i in range(self.len_basis):
             if d[i, 0] > 0:
                 ratio =   b_bar[i, 0] / d[i, 0]
@@ -141,6 +159,19 @@ class RevisedSimplex:
         for i, b in enumerate(self.basis):
             x[b] = b_star[i]
         return x
+    
+    def get_original_solution(self, transformed_solution):
+        """Convert solution back to original variables"""
+        original_solution = mp.matrix(self.original_A.cols, 1)
+        original_c = mp.matrix(self.original_A.cols, 1)
+        
+        # For each original variable, compute x = x⁺ - x⁻
+        for i in range(self.original_A.cols):
+            pos_part = transformed_solution[i]
+            neg_part = transformed_solution[self.original_A.cols + i]
+            original_solution[i] = pos_part - neg_part
+                
+        return original_solution
     
     def solve(self, max_iterations=1000):
         """
@@ -174,12 +205,11 @@ class RevisedSimplex:
             tolerance = mp.mpf(f'1e-{int(mp.mp.dps * 0.5)}')  
             
             if min_reduced_cost >= -tolerance:
-                x = self.get_solution(B_inv)
-                print("\new_c: ")
-                print(self.new_c)
-                print("\nsolution: ")
-                print(x)
-                return x, self.new_c.T * x, "Optimal"
+                transformed_solution = self.get_solution(B_inv)
+                print(transformed_solution)
+                x, c = self.get_original_solution(transformed_solution)
+                
+                return x, c.T * x, "Optimal"
             
             # Get leaving variable
             leaving_var, max_ratio = self.get_leaving_variable(B_inv, entering_var)
