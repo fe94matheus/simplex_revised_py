@@ -28,19 +28,13 @@ class RevisedSimplex:
                 
         # Add slack variables
         self.augmented_matrix, self.new_c = self.add_slack_variables()
-        print(self.augmented_matrix)
-        print(self.new_c)
         
         # Initialize basis
         self.basis = list(range(self.A.cols, self.A.cols + self.A.rows))
         self.nonbasis = list(range(self.A.cols))
         
         self.len_basis = len(self.basis)
-        self.len_nonbasis= len(self.nonbasis)
-
-        print('Basics: '    , self.basis)
-        print('Non Basics: ', self.nonbasis)
-        
+        self.len_nonbasis= len(self.nonbasis)      
        
     def transform_unrestricted(self):
         """Transform the variables x_i in x_i = x_i^+ - x_i^-"""
@@ -91,15 +85,12 @@ class RevisedSimplex:
         
         y_T = c_B.T * B_inv
         
-       
-        
         reduced_costs = []
         
         for j, n_basis_col  in enumerate(self.nonbasis):
             r_cost = (self.new_c[n_basis_col, 0] - (y_T * self.augmented_matrix[ : , n_basis_col]))[0]
             reduced_costs.append((n_basis_col, r_cost))
         
-            
         return reduced_costs
     
     def get_entering_variable(self, reduced_costs):
@@ -120,15 +111,11 @@ class RevisedSimplex:
         a_j = self.augmented_matrix[:, entering_var]
        
         d = B_inv * a_j
-        print("d: " )
-        print(d)
         
         '''if all(d <= 0):
             return None, None  # Unbounded solution'''
         
         b_bar = B_inv * self.b
-        print("b_bar: " )
-        print(b_bar)
         
         ratios = []
         
@@ -164,14 +151,16 @@ class RevisedSimplex:
         """Convert solution back to original variables"""
         original_solution = mp.matrix(self.original_A.cols, 1)
         original_c = mp.matrix(self.original_A.cols, 1)
-        
+                
         # For each original variable, compute x = x⁺ - x⁻
         for i in range(self.original_A.cols):
             pos_part = transformed_solution[i]
             neg_part = transformed_solution[self.original_A.cols + i]
             original_solution[i] = pos_part - neg_part
+        
+        original_c[: , 0] = self.new_c[: self.original_A.cols , 0]
                 
-        return original_solution
+        return original_solution, original_c
     
     def solve(self, max_iterations=1000):
         """
@@ -187,33 +176,25 @@ class RevisedSimplex:
         while iteration < max_iterations:
             # Get basis inverse
             B_inv = self.get_basis_inverse()
-            print("B inverse: \n")
-            print(B_inv)
             
             # Compute reduced costs
             reduced_costs = self.compute_reduced_costs(B_inv)
-            print("\n reduced_costs: \n")
-            print(reduced_costs)
             
             # Get entering variable
             entering_var, min_reduced_cost = self.get_entering_variable(reduced_costs)
             
-            print("\n entering_var: ", entering_var)
-            print("\n min_reduced_cost: ", min_reduced_cost)
-            # Check optimality
-             
+            # Check optimality  
             tolerance = mp.mpf(f'1e-{int(mp.mp.dps * 0.5)}')  
             
             if min_reduced_cost >= -tolerance:
                 transformed_solution = self.get_solution(B_inv)
-                print(transformed_solution)
                 x, c = self.get_original_solution(transformed_solution)
                 
-                return x, c.T * x, "Optimal"
+                return x, (c.T * x)[0], "Optimal"
             
             # Get leaving variable
             leaving_var, max_ratio = self.get_leaving_variable(B_inv, entering_var)
-            print("\n leaving_var: ", leaving_var)
+
             # Check if unbounded
             if leaving_var is None:
                 return None, None, "Unbounded"

@@ -26,16 +26,17 @@ s.t. 2x1 -  x2 + x3 <= 10
      -x1 - 2x2 + x3 <= 4
 '''
 
-A = mp.matrix( [ [2, -1, 1], [-1, -2, 1] ] )
-b = mp.matrix( [10, 4] )
-c = mp.matrix( [-3, 2, -1] )
+
+A = mp.matrix( [ [1, -1], [-1, -1], [-1,2], [1,1]] )
+b = mp.matrix( [-1, -2, 3, 6] )
+c = mp.matrix( [2, 1 ] )
 
 
-solver = Simplex.RevisedSimplex(A, b, c)
+solver = Simplex.RevisedSimplex(A, b, c, 100)
 
 solution, objective_value, status = solver.solve()
-'''
+
 print(f"Status: {status}")
 print(f"Solution: \n{solution}")
-print(f"Objective value: {objective_value}")'''
+print(f"Objective value: {objective_value}")
 
