@@ -176,7 +176,7 @@ class RevisedSimplex:
         while iteration < max_iterations:
             # Get basis inverse
             B_inv = self.get_basis_inverse()
-            
+
             # Compute reduced costs
             reduced_costs = self.compute_reduced_costs(B_inv)
             
@@ -190,7 +190,7 @@ class RevisedSimplex:
                 transformed_solution = self.get_solution(B_inv)
                 x, c = self.get_original_solution(transformed_solution)
                 
-                return x, (c.T * x)[0], "Optimal"
+                return x, (c.T * x)[0], iteration, "Optimal"
             
             # Get leaving variable
             leaving_var, max_ratio = self.get_leaving_variable(B_inv, entering_var)

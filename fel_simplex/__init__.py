@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jan 12 16:26:15 2025
-
-@author: felipe
-"""
+# Copyright (c) 2025 Felipe Matheus Oliveira Silva
+# This code is licensed under the MIT License.
+# See the LICENSE file in the project root for more information.
 
 from .fel_utils import *
 from .revised_simplex import *
+from .optimal_poly import *

@@ -20,16 +20,16 @@ class SimplexProblemSetup:
         
         return points
     
-    def construct_matrix(self, n, points, omega = lambda x: mp.mpf(1)):
+    def construct_matrix(self, n, points, omega_sup , omega_inf ):
         m = len(points)
         matrix = mp.matrix(2*m , n+2) 
         
         for i in range(m):
-            matrix[i, 0] = omega(points[i])
+            matrix[i, 0] = omega_sup(points[i])
             matrix[i, 1] = mp.mpf(1)
             
         for i in range(m, 2*m):
-            matrix[i, 0] = omega(points[i-m])
+            matrix[i, 0] = omega_inf(points[i-m])
             matrix[i, 1] = mp.mpf(-1)
             
         for M in range(m):
@@ -55,8 +55,8 @@ class SimplexProblemSetup:
         
         return c
 
-
-setproblem = SimplexProblemSetup(100)
+    def getPrec(self):
+        return self.prec
 
 
 
