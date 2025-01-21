@@ -6,14 +6,26 @@ import mpmath as mp
 
 
 class RevisedSimplex:
+    """
+    A class implementing the Revised Simplex Method for solving linear programming problems.
+    
+    This implementation includes:
+    - Handling of unrestricted variables through variable splitting (x = x⁺ - x⁻)
+    - Automatic slack variable addition
+    - High-precision arithmetic using mpmath
+
+  
+    """
     def __init__(self, A, b, c, precision=50):
         """
-        Initialize the Revised Simplex Method solver
+        Initialize the Revised Simplex Method solver.
         
-        Parameters:
-        A : array-like - Constraint coefficients matrix
-        b : array-like - Right-hand side constraints
-        c : array-like - Objective function coefficients
+        Args:
+            A (mpmath.matrix): Constraint coefficients matrix
+            b (mpmath.matrix): Right-hand side constraints
+            c (mpmath.matrix): Objective function coefficients
+            precision (int, optional): Number of decimal places for arithmetic precision.
+                                     Defaults to 50.
         """
         self.original_A = A
         self.b = b
@@ -37,7 +49,17 @@ class RevisedSimplex:
         self.len_nonbasis= len(self.nonbasis)      
        
     def transform_unrestricted(self):
-        """Transform the variables x_i in x_i = x_i^+ - x_i^-"""
+        """
+        Transform unrestricted variables using the splitting method x = x⁺ - x⁻.
+        
+        This method doubles the number of variables, representing each original
+        variable x as the difference of two non-negative variables (x⁺ and x⁻).
+        
+        Returns:
+            tuple: (new_A, new_c) where:
+                  - new_A is the transformed constraint matrix
+                  - new_c is the transformed objective coefficients
+        """
         new_A = mp.matrix(self.m, 2 * self.n)
         new_c = mp.matrix(2 * self.n, 1)
         
@@ -51,7 +73,17 @@ class RevisedSimplex:
         return new_A, new_c
         
     def add_slack_variables(self):
-        """Add slack variables to create initial basic feasible solution"""
+        """
+        Add slack variables to create an initial basic feasible solution.
+        
+        Adds an identity matrix to the constraint matrix to create slack variables,
+        which form the initial basis.
+        
+        Returns:
+            tuple: (augmented_matrix, new_c) where:
+                  - augmented_matrix includes the slack variables
+                  - new_c is extended with zeros for slack variables
+        """
         identity = mp.eye(self.m)
         augmented_matrix = mp.matrix(self.A.rows, self.A.cols + identity.cols)  
         
@@ -66,7 +98,15 @@ class RevisedSimplex:
         
         
     def get_basis_inverse(self):
-        """Get the inverse of the basis matrix"""
+        """
+        Calculate the inverse of the current basis matrix.
+        
+        Extracts the columns corresponding to basic variables and computes
+        the inverse using mpmath's matrix inversion.
+        
+        Returns:
+            mpmath.matrix: Inverse of the current basis matrix
+        """
         B = mp.matrix(self.len_basis, self.len_basis)  
 
         for i in range(self.len_basis):
@@ -76,7 +116,18 @@ class RevisedSimplex:
         return B**-1
         
     def compute_reduced_costs(self, B_inv):
-        """Compute reduced costs for non-basic variables"""
+        """
+        Compute reduced costs for all non-basic variables.
+        
+        The reduced cost for variable j is: cⱼ - yᵀaⱼ
+        where y = (cᵦᵀB⁻¹)ᵀ and aⱼ is the column of variable j.
+        
+        Args:
+            B_inv (mpmath.matrix): Inverse of the current basis matrix
+            
+        Returns:
+            list: Pairs of (variable_index, reduced_cost) for non-basic variables
+        """
         c_B = mp.matrix(self.len_basis, 1)
         
        
@@ -94,7 +145,15 @@ class RevisedSimplex:
         return reduced_costs
     
     def get_entering_variable(self, reduced_costs):
-        """Determine entering variable using minimum reduced cost"""
+        """
+        Select the entering variable using minimum reduced cost criterion.
+        
+        Args:
+            reduced_costs (list): List of (variable_index, reduced_cost) pairs
+            
+        Returns:
+            tuple: (entering_variable_index, minimum_reduced_cost)
+        """
         min_reduced_cost = mp.inf
         entering_var = None
         
@@ -106,7 +165,16 @@ class RevisedSimplex:
         return entering_var, min_reduced_cost
     
     def get_leaving_variable(self, B_inv, entering_var):
-        """Determine leaving variable using minimum ratio test"""
+        """
+        Select the leaving variable using the minimum ratio test.
+        
+        Args:
+            B_inv (mpmath.matrix): Inverse of the current basis matrix
+            entering_var (int): Index of the entering variable
+            
+        Returns:
+            tuple: (leaving_variable_index, maximum_ratio) or (None, None) if unbounded
+        """
         a_j = mp.matrix(self.m, 1)
         a_j = self.augmented_matrix[:, entering_var]
        
@@ -134,13 +202,27 @@ class RevisedSimplex:
         
     
     def update_basis(self, entering_var, leaving_var):
-        """Update basis and non-basis lists"""
+        """
+        Update the basis and non-basis lists.
+        
+        Args:
+            entering_var (int): Index of the entering variable
+            leaving_var (int): Index of the leaving variable
+        """
         self.basis[self.basis.index(leaving_var)] = entering_var
         self.nonbasis.remove(entering_var)
         self.nonbasis.append(leaving_var)
         
     def get_solution(self, B_inv):
-        """Get current solution values"""
+        """
+        Calculate the current basic solution.
+        
+        Args:
+            B_inv (mpmath.matrix): Inverse of the current basis matrix
+            
+        Returns:
+            mpmath.matrix: Current solution vector
+        """
         b_star = B_inv * self.b
         x = mp.matrix(len(self.new_c), 1)
         for i, b in enumerate(self.basis):
@@ -148,7 +230,18 @@ class RevisedSimplex:
         return x
     
     def get_original_solution(self, transformed_solution):
-        """Convert solution back to original variables"""
+        """
+        Convert the solution from split variables back to original variables.
+        
+        Converts each pair of split variables (x⁺, x⁻) back to the original
+        unrestricted variable x = x⁺ - x⁻.
+        
+        Args:
+            transformed_solution (mpmath.matrix): Solution in terms of split variables
+            
+        Returns:
+            tuple: (original_solution, original_objective_coefficients)
+        """
         original_solution = mp.matrix(self.original_A.cols, 1)
         original_c = mp.matrix(self.original_A.cols, 1)
                 
@@ -164,12 +257,23 @@ class RevisedSimplex:
     
     def solve(self, max_iterations=1000):
         """
-        Solve the linear programming problem using revised simplex method
+        Solve the linear programming problem using the revised simplex method.
         
+        Args:
+            max_iterations (int, optional): Maximum number of iterations. Defaults to 1000.
+            
         Returns:
-        x : array-like - Optimal solution
-        obj_val : float - Optimal objective value
-        status : str - Solution status
+            tuple: (x, obj_val, iterations, status) where:
+                  - x is the optimal solution vector (or None if not found)
+                  - obj_val is the optimal objective value (or None if not found)
+                  - iterations is the number of iterations performed
+                  - status is one of: "Optimal", "Unbounded", "Max iterations reached"
+                  
+        Notes:
+            The algorithm terminates when:
+            - An optimal solution is found (all reduced costs are non-negative)
+            - The problem is determined to be unbounded
+            - The maximum number of iterations is reached
         """
         iteration = 0
         
