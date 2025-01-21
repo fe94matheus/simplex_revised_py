@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Felipe Matheus Oliveira Silva
+# Copyright (c) 2025 Felipe Oliveira
 # This code is licensed under the MIT License.
 # See the LICENSE file in the project root for more information.
 
